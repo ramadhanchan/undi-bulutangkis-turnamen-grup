@@ -106,7 +106,7 @@ export function recordMatchScore(
 
   const match = db
     .query("SELECT team1_id, team2_id FROM matches WHERE id = ?")
-    .get(matchId) as { team1_id: string; team2_id: string } | null;
+    .get(matchId) as { team1_id: string | null; team2_id: string | null } | null;
 
   if (!match) throw new Error("Match not found");
 
@@ -126,7 +126,7 @@ export function recordMatchScore(
   }
 
   const winner = getMatchWinner(sets);
-  const winnerTeamId = winner === 1 ? match.team1_id : winner === 2 ? match.team2_id : null;
+  const winnerTeamId = winner === 1 ? (match.team1_id || null) : winner === 2 ? (match.team2_id || null) : null;
 
   const s1 = sets[0] || { t1: null, t2: null };
   const s2 = sets[1] || { t1: null, t2: null };

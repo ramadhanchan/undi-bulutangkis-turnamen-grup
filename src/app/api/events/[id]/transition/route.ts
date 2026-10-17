@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { transitionPhase } from "@/lib/events";
 import { canPair } from "@/lib/participants";
 import { generateGroupStage } from "@/lib/schedule";
+import { generateKnockoutBracket } from "@/lib/bracket";
 import { broadcast } from "@/lib/sse";
 import type { EventState } from "@/lib/types";
 
@@ -33,6 +34,16 @@ export async function POST(
         generateGroupStage(id);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Failed to generate group stage";
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+    }
+
+    // Generate knockout bracket when transitioning to knockout
+    if (targetState === "knockout") {
+      try {
+        generateKnockoutBracket(id);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to generate knockout bracket";
         return NextResponse.json({ error: msg }, { status: 400 });
       }
     }

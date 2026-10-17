@@ -65,8 +65,8 @@ export function calculateGroupStandings(
     if (!match.winnerTeamId && !match.isWalkover) continue;
     if (match.set1T1 === null || match.set1T2 === null) continue; // no score
 
-    const t1 = standingsMap.get(match.team1Id);
-    const t2 = standingsMap.get(match.team2Id);
+    const t1 = match.team1Id ? standingsMap.get(match.team1Id) : null;
+    const t2 = match.team2Id ? standingsMap.get(match.team2Id) : null;
     if (!t1 || !t2) continue;
 
     t1.played++;
@@ -101,11 +101,11 @@ export function calculateGroupStandings(
     // Determine match winner
     const actualWinner = match.winnerTeamId;
 
-    if (actualWinner === match.team1Id) {
+    if (actualWinner && actualWinner === match.team1Id) {
       t1.won++;
       t1.points += 2;
       t2.lost++;
-    } else if (actualWinner === match.team2Id) {
+    } else if (actualWinner && actualWinner === match.team2Id) {
       t2.won++;
       t2.points += 2;
       t1.lost++;
@@ -125,8 +125,10 @@ export function calculateGroupStandings(
     // 2. Head-to-head: check if a and b played each other
     const h2hMatch = matches.find(
       (m) =>
-        (m.team1Id === a.teamId && m.team2Id === b.teamId) ||
-        (m.team1Id === b.teamId && m.team2Id === a.teamId)
+        m.team1Id !== null &&
+        m.team2Id !== null &&
+        ((m.team1Id === a.teamId && m.team2Id === b.teamId) ||
+        (m.team1Id === b.teamId && m.team2Id === a.teamId))
     );
     if (h2hMatch && h2hMatch.winnerTeamId) {
       if (h2hMatch.winnerTeamId === a.teamId) return -1;

@@ -33,8 +33,8 @@ export interface Team {
 export interface Match {
   id: string;
   eventId: string;
-  team1Id: string;
-  team2Id: string;
+  team1Id: string | null;
+  team2Id: string | null;
   phase: "group" | "knockout";
   groupNumber: number | null;
   round: number;

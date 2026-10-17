@@ -59,7 +59,7 @@ describe("calculateGroupStandings", () => {
     const event = setupTournament();
     const matches = getMatches(event.id, "group").filter((m) => m.groupNumber === 1);
     const match = matches[0];
-    recordMatchScore(match.id, [], true, match.team2Id);
+    recordMatchScore(match.id, [], true, match.team2Id || undefined);
     const standings = calculateGroupStandings(event.id, 1);
     const winner = standings.find((s) => s.teamId === match.team2Id);
     expect(winner!.points).toBe(2);

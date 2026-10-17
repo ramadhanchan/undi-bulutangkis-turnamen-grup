@@ -69,6 +69,7 @@ interface EventData {
   matches: Match[];
   standings: GroupStanding[];
   bracket: unknown;
+  champion: string | null;
 }
 
 export default function EventPage() {
@@ -300,11 +301,58 @@ export default function EventPage() {
 
       {/* Bracket */}
       <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Bracket</h2>
-        {!event.bracket ? (
+        <h2 className="text-lg font-semibold mb-2">Knockout Bracket</h2>
+        {event.champion && (
+          <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-center">
+            <span className="font-bold text-yellow-800">
+              Champion: {event.matches.find((m) => m.id && m.winnerTeamId === event.champion)?.team1.id === event.champion
+                ? event.matches.find((m) => m.winnerTeamId === event.champion)?.team1.name
+                : event.matches.find((m) => m.winnerTeamId === event.champion)?.team2.name}
+            </span>
+          </div>
+        )}
+        {event.matches.filter((m) => m.phase === "knockout").length === 0 ? (
           <p className="text-gray-400 text-sm">No bracket yet.</p>
         ) : (
-          <p className="text-sm">Bracket data available.</p>
+          <div className="space-y-4">
+            {Array.from(
+              new Set(event.matches.filter((m) => m.phase === "knockout").map((m) => m.round))
+            )
+              .sort((a, b) => a - b)
+              .map((round) => (
+                <div key={round}>
+                  <h3 className="font-medium text-sm mb-1">
+                    {round === Math.max(...event.matches.filter((m) => m.phase === "knockout").map((m) => m.round))
+                      ? "Final"
+                      : `Round ${round}`}
+                  </h3>
+                  <ul className="space-y-1 text-sm">
+                    {event.matches
+                      .filter((m) => m.phase === "knockout" && m.round === round)
+                      .map((m) => (
+                        <li key={m.id} className="border rounded p-2">
+                          <span className="font-medium">{m.team1.name}</span>
+                          {" vs "}
+                          <span className="font-medium">{m.team2.name}</span>
+                          {m.sets.some((s) => s.t1 !== null) && (
+                            <span className="ml-2 text-gray-600">
+                              ({m.sets
+                                .filter((s) => s.t1 !== null)
+                                .map((s) => `${s.t1}-${s.t2}`)
+                                .join(", ")})
+                            </span>
+                          )}
+                          {m.winnerTeamId && (
+                            <span className="text-green-600 ml-2">
+                              Winner: {m.winnerTeamId === m.team1.id ? m.team1.name : m.team2.name}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
+          </div>
         )}
       </section>
     </main>

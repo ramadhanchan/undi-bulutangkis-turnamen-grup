@@ -116,8 +116,8 @@ export function getMatches(eventId: string, phase?: "group" | "knockout"): Match
   const rows = db.query(query).all(...params) as {
     id: string;
     event_id: string;
-    team1_id: string;
-    team2_id: string;
+    team1_id: string | null;
+    team2_id: string | null;
     phase: string;
     group_number: number | null;
     round: number;

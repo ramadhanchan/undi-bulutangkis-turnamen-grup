@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getEvent, verifyAdminToken } from "@/lib/events";
 import { recordMatchScore } from "@/lib/scoring";
+import { advanceKnockoutRound } from "@/lib/bracket";
 import { broadcast } from "@/lib/sse";
 
 export async function POST(
@@ -20,6 +21,12 @@ export async function POST(
     }
 
     const result = recordMatchScore(matchId, sets || [], isWalkover || false, walkoverWinnerId);
+
+    // Advance knockout round if applicable
+    if (event.state === "knockout") {
+      advanceKnockoutRound(id);
+    }
+
     broadcast(id, { type: "score_updated", matchId, winnerTeamId: result.winnerTeamId });
     return NextResponse.json({ success: true, winnerTeamId: result.winnerTeamId });
   } catch (error) {

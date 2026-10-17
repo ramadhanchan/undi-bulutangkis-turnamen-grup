@@ -368,6 +368,32 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Score input for knockout matches */}
+      {event.state === "knockout" && matches.filter((m) => m.phase === "knockout").length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Knockout Matches</h2>
+          <div className="space-y-4">
+            {matches
+              .filter((m) => m.phase === "knockout")
+              .map((m) => (
+                <MatchScoreForm
+                  key={m.id}
+                  match={m}
+                  token={token}
+                  eventId={id}
+                  onSaved={() => {
+                    fetch(`/api/events/${id}`)
+                      .then((r) => r.json())
+                      .then((data) => {
+                        if (data.matches) setMatches(data.matches);
+                      })
+                      .catch(() => {});
+                  }}
+                />
+              ))}
+          </div>
+        </div>
+      )}
       <div className="space-y-3">
         {nextPhase && (
           <button

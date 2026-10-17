@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getEvent, deleteEvent } from "@/lib/events";
 import { getDb } from "@/lib/db";
 import { getAllGroupStandings } from "@/lib/standings";
+import { getChampion } from "@/lib/bracket";
 import { broadcast } from "@/lib/sse";
 
 export async function GET(
@@ -36,8 +37,8 @@ export async function GET(
     )
     .all(id) as {
       id: string;
-      team1_id: string;
-      team2_id: string;
+      team1_id: string | null;
+      team2_id: string | null;
       phase: string;
       group_number: number | null;
       round: number;
@@ -75,32 +76,32 @@ export async function GET(
     groupNumber: t.group_number,
   }));
 
-  const matchList = matches.map((m) => ({
-    id: m.id,
-    team1: teamMap.get(m.team1_id)
-      ? {
-          id: m.team1_id,
-          name: `${participantMap.get(teamMap.get(m.team1_id)!.player1_id)} / ${participantMap.get(teamMap.get(m.team1_id)!.player2_id)}`,
-        }
-      : { id: m.team1_id, name: "Unknown" },
-    team2: teamMap.get(m.team2_id)
-      ? {
-          id: m.team2_id,
-          name: `${participantMap.get(teamMap.get(m.team2_id)!.player1_id)} / ${participantMap.get(teamMap.get(m.team2_id)!.player2_id)}`,
-        }
-      : { id: m.team2_id, name: "Unknown" },
-    phase: m.phase,
-    groupNumber: m.group_number,
-    round: m.round,
-    sets: [
-      { t1: m.set1_t1, t2: m.set1_t2 },
-      { t1: m.set2_t1, t2: m.set2_t2 },
-      { t1: m.set3_t1, t2: m.set3_t2 },
-    ],
-    winnerTeamId: m.winner_team_id,
-    isWalkover: m.is_walkover === 1,
-    playedAt: m.played_at,
-  }));
+  const matchList = matches.map((m) => {
+    const t1 = m.team1_id ? teamMap.get(m.team1_id) : null;
+    const t2 = m.team2_id ? teamMap.get(m.team2_id) : null;
+    const t1Name = t1
+      ? `${participantMap.get(t1.player1_id)} / ${participantMap.get(t1.player2_id)}`
+      : "BYE";
+    const t2Name = t2
+      ? `${participantMap.get(t2.player1_id)} / ${participantMap.get(t2.player2_id)}`
+      : "BYE";
+    return {
+      id: m.id,
+      team1: { id: m.team1_id || "", name: t1Name },
+      team2: { id: m.team2_id || "", name: t2Name },
+      phase: m.phase,
+      groupNumber: m.group_number,
+      round: m.round,
+      sets: [
+        { t1: m.set1_t1, t2: m.set1_t2 },
+        { t1: m.set2_t1, t2: m.set2_t2 },
+        { t1: m.set3_t1, t2: m.set3_t2 },
+      ],
+      winnerTeamId: m.winner_team_id,
+      isWalkover: m.is_walkover === 1,
+      playedAt: m.played_at,
+    };
+  });
 
   return NextResponse.json({
     id: event.id,
@@ -113,6 +114,7 @@ export async function GET(
     matches: matchList,
     standings: standingsData,
     bracket: null, // populated in ticket #06
+    champion: event.state === "finished" || event.state === "knockout" ? getChampion(id) : null,
   });
 }
 

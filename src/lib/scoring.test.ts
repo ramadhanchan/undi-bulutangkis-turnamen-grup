@@ -107,7 +107,7 @@ describe("recordMatchScore", () => {
     const matches = getMatches(event.id, "group");
     const match = matches[0];
 
-    const result = recordMatchScore(match.id, [], true, match.team2Id);
+    const result = recordMatchScore(match.id, [], true, match.team2Id || undefined);
     expect(result.winnerTeamId).toBe(match.team2Id); // opponent wins
   });
 

@@ -50,8 +50,8 @@ function initSchema(database: Database) {
     CREATE TABLE IF NOT EXISTS matches (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-      team1_id TEXT NOT NULL REFERENCES teams(id),
-      team2_id TEXT NOT NULL REFERENCES teams(id),
+      team1_id TEXT REFERENCES teams(id),
+      team2_id TEXT REFERENCES teams(id),
       phase TEXT NOT NULL,
       group_number INTEGER,
       round INTEGER NOT NULL DEFAULT 1,
