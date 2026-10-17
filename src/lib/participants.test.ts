@@ -104,7 +104,7 @@ describe("canPair", () => {
     registerParticipant(event.id, "C");
     const result = canPair(event.id);
     expect(result.ok).toBe(false);
-    expect(result.reason).toContain("multiple of 4");
+    expect(result.reason).toContain("multiple of 8");
   });
 
   test("accepts multiple of 4", () => {

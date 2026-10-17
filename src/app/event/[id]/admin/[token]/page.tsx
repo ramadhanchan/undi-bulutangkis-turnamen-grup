@@ -15,7 +15,173 @@ interface Team {
   player2: { id: string; name: string };
 }
 
+interface Match {
+  id: string;
+  team1: { id: string; name: string };
+  team2: { id: string; name: string };
+  phase: string;
+  groupNumber: number | null;
+  round: number;
+  sets: { t1: number | null; t2: number | null }[];
+  winnerTeamId: string | null;
+  isWalkover: boolean;
+}
+
 const PHASES = ["registration", "pairing", "group_stage", "knockout", "finished"] as const;
+
+function MatchScoreForm({
+  match,
+  token,
+  eventId,
+  onSaved,
+}: {
+  match: Match;
+  token: string;
+  eventId: string;
+  onSaved: () => void;
+}) {
+  const [s1t1, setS1t1] = useState(match.sets[0]?.t1?.toString() || "");
+  const [s1t2, setS1t2] = useState(match.sets[0]?.t2?.toString() || "");
+  const [s2t1, setS2t1] = useState(match.sets[1]?.t1?.toString() || "");
+  const [s2t2, setS2t2] = useState(match.sets[1]?.t2?.toString() || "");
+  const [s3t1, setS3t1] = useState(match.sets[2]?.t1?.toString() || "");
+  const [s3t2, setS3t2] = useState(match.sets[2]?.t2?.toString() || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent, isWalkover: boolean) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const sets = isWalkover
+        ? undefined
+        : [
+            { t1: Number(s1t1) || 0, t2: Number(s1t2) || 0 },
+            { t1: Number(s2t1) || 0, t2: Number(s2t2) || 0 },
+            { t1: Number(s3t1) || 0, t2: Number(s3t2) || 0 },
+          ].filter((s) => s.t1 > 0 || s.t2 > 0);
+
+      const res = await fetch(`/api/events/${eventId}/matches/${match.id}/score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          sets: isWalkover ? [] : sets,
+          isWalkover,
+          walkoverWinnerId: isWalkover ? match.team2.id : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Save failed");
+        return;
+      }
+      onSaved();
+    } catch {
+      setError("Network error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const alreadyPlayed = match.winnerTeamId !== null;
+
+  return (
+    <div className="border rounded p-3 bg-gray-50">
+      <div className="font-medium text-sm mb-2">
+        {match.team1.name} vs {match.team2.name}
+        {match.winnerTeamId && (
+          <span className="text-green-600 ml-2">
+            (Winner: {match.winnerTeamId === match.team1.id ? match.team1.name : match.team2.name})
+          </span>
+        )}
+      </div>
+      {!alreadyPlayed && (
+        <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-2">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label className="block mb-1">{match.team1.name}</label>
+              <div className="flex gap-1">
+                <input
+                  type="number"
+                  value={s1t1}
+                  onChange={(e) => setS1t1(e.target.value)}
+                  placeholder="S1"
+                  className="border rounded px-2 py-1 w-12"
+                  min="0"
+                />
+                <input
+                  type="number"
+                  value={s2t1}
+                  onChange={(e) => setS2t1(e.target.value)}
+                  placeholder="S2"
+                  className="border rounded px-2 py-1 w-12"
+                  min="0"
+                />
+                <input
+                  type="number"
+                  value={s3t1}
+                  onChange={(e) => setS3t1(e.target.value)}
+                  placeholder="S3"
+                  className="border rounded px-2 py-1 w-12"
+                  min="0"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block mb-1">{match.team2.name}</label>
+              <div className="flex gap-1">
+                <input
+                  type="number"
+                  value={s1t2}
+                  onChange={(e) => setS1t2(e.target.value)}
+                  placeholder="S1"
+                  className="border rounded px-2 py-1 w-12"
+                  min="0"
+                />
+                <input
+                  type="number"
+                  value={s2t2}
+                  onChange={(e) => setS2t2(e.target.value)}
+                  placeholder="S2"
+                  className="border rounded px-2 py-1 w-12"
+                  min="0"
+                />
+                <input
+                  type="number"
+                  value={s3t2}
+                  onChange={(e) => setS3t2(e.target.value)}
+                  placeholder="S3"
+                  className="border rounded px-2 py-1 w-12"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+          {error && <p className="text-red-600 text-xs">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Score"}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, true)}
+              disabled={saving}
+              className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 disabled:opacity-50"
+            >
+              Walkover
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const params = useParams();
@@ -24,6 +190,7 @@ export default function AdminPage() {
   const token = params.token as string;
   const [event, setEvent] = useState<EventData | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -42,6 +209,7 @@ export default function AdminPage() {
         const data = await res.json();
         if (cancelled) return;
         setEvent(data);
+        if (data.matches) setMatches(data.matches);
       } catch {
         if (!cancelled) setError("Network error");
       } finally {
@@ -80,6 +248,12 @@ export default function AdminPage() {
         return;
       }
       setEvent((prev) => (prev ? { ...prev, state: data.state } : prev));
+      // Refetch matches after transition
+      const evRes = await fetch(`/api/events/${id}`);
+      if (evRes.ok) {
+        const evData = await evRes.json();
+        if (evData.matches) setMatches(evData.matches);
+      }
     } catch {
       alert("Network error");
     }
@@ -164,6 +338,33 @@ export default function AdminPage() {
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Score input for group stage matches */}
+      {event.state === "group_stage" && matches.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Group Stage Matches</h2>
+          <div className="space-y-4">
+            {matches
+              .filter((m) => m.phase === "group")
+              .map((m) => (
+                <MatchScoreForm
+                  key={m.id}
+                  match={m}
+                  token={token}
+                  eventId={id}
+                  onSaved={() => {
+                    fetch(`/api/events/${id}`)
+                      .then((r) => r.json())
+                      .then((data) => {
+                        if (data.matches) setMatches(data.matches);
+                      })
+                      .catch(() => {});
+                  }}
+                />
+              ))}
+          </div>
         </div>
       )}
 

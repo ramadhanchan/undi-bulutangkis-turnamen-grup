@@ -38,6 +38,26 @@ interface Match {
   playedAt: string | null;
 }
 
+interface Standing {
+  teamId: string;
+  teamName: string;
+  played: number;
+  won: number;
+  lost: number;
+  points: number;
+  pointsScored: number;
+  pointsConceded: number;
+  pointDiff: number;
+  setsWon: number;
+  setsLost: number;
+  qualified: boolean;
+}
+
+interface GroupStanding {
+  group: number;
+  standings: Standing[];
+}
+
 interface EventData {
   id: string;
   name: string;
@@ -47,7 +67,7 @@ interface EventData {
   participants: Participant[];
   teams: Team[];
   matches: Match[];
-  standings: unknown[];
+  standings: GroupStanding[];
   bracket: unknown;
 }
 
@@ -218,6 +238,14 @@ export default function EventPage() {
                 <span className="font-medium">{m.team1.name}</span>
                 {" vs "}
                 <span className="font-medium">{m.team2.name}</span>
+                {m.sets.some((s) => s.t1 !== null) && (
+                  <span className="ml-2 text-gray-600">
+                    ({m.sets
+                      .filter((s) => s.t1 !== null)
+                      .map((s) => `${s.t1}-${s.t2}`)
+                      .join(", ")})
+                  </span>
+                )}
                 {m.isWalkover && <span className="text-orange-500 ml-2">(W.O.)</span>}
                 {m.winnerTeamId && (
                   <span className="text-green-600 ml-2">
@@ -236,7 +264,37 @@ export default function EventPage() {
         {event.standings.length === 0 ? (
           <p className="text-gray-400 text-sm">No standings yet.</p>
         ) : (
-          <p className="text-sm">Standings data available.</p>
+          event.standings.map((g) => (
+            <div key={g.group} className="mb-4">
+              <h3 className="font-medium text-sm mb-1">Group {g.group}</h3>
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-1">#</th>
+                    <th className="text-left py-1">Team</th>
+                    <th className="text-center py-1">P</th>
+                    <th className="text-center py-1">W</th>
+                    <th className="text-center py-1">Pts</th>
+                    <th className="text-center py-1">PD</th>
+                    <th className="text-center py-1">SW</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {g.standings.map((s, idx) => (
+                    <tr key={s.teamId} className={`border-b ${s.qualified ? "bg-green-50" : ""}`}>
+                      <td className="py-1">{idx + 1}</td>
+                      <td className="py-1">{s.teamName}</td>
+                      <td className="text-center py-1">{s.played}</td>
+                      <td className="text-center py-1">{s.won}</td>
+                      <td className="text-center py-1">{s.points}</td>
+                      <td className="text-center py-1">{s.pointDiff}</td>
+                      <td className="text-center py-1">{s.setsWon}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))
         )}
       </section>
 

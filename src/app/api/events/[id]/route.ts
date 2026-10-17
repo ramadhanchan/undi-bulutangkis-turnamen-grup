@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getEvent, deleteEvent } from "@/lib/events";
 import { getDb } from "@/lib/db";
+import { getAllGroupStandings } from "@/lib/standings";
 import { broadcast } from "@/lib/sse";
 
 export async function GET(
@@ -51,7 +52,19 @@ export async function GET(
       played_at: string | null;
     }[];
 
-  // Build participant name lookup
+  // Build standings
+  let standingsData: unknown[] = [];
+  if (event.state === "group_stage" || event.state === "knockout" || event.state === "finished") {
+    const allStandings = getAllGroupStandings(id);
+    const standingsObj: Record<string, unknown[]> = {};
+    for (const [groupNum, groupStandings] of allStandings) {
+      standingsObj[String(groupNum)] = groupStandings;
+    }
+    standingsData = Object.entries(standingsObj).map(([group, standings]) => ({
+      group: Number(group),
+      standings,
+    }));
+  }
   const participantMap = new Map(participants.map((p) => [p.id, p.name]));
   const teamMap = new Map(teams.map((t) => [t.id, t]));
 
@@ -98,7 +111,7 @@ export async function GET(
     participants: participants.map((p) => ({ id: p.id, name: p.name })),
     teams: teamList,
     matches: matchList,
-    standings: [], // populated in ticket #05
+    standings: standingsData,
     bracket: null, // populated in ticket #06
   });
 }

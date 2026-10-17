@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { transitionPhase } from "@/lib/events";
 import { canPair } from "@/lib/participants";
+import { generateGroupStage } from "@/lib/schedule";
 import { broadcast } from "@/lib/sse";
 import type { EventState } from "@/lib/types";
 
@@ -25,6 +26,17 @@ export async function POST(
     }
 
     const event = transitionPhase(id, token, targetState as EventState);
+
+    // Generate group stage matches when transitioning to group_stage
+    if (targetState === "group_stage") {
+      try {
+        generateGroupStage(id);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to generate group stage";
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+    }
+
     broadcast(id, { type: "phase_transition", state: event.state });
     return NextResponse.json({ id: event.id, state: event.state });
   } catch (error) {
