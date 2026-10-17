@@ -1,0 +1,3 @@
+# Admin link (UUID) instead of user accounts
+
+We chose per-event admin links (UUID) over a user account/auth system. Organizers receive a secret link on event creation; participants and viewers need no account. Rejected alternative: Supabase Auth / session-based auth (adds complexity, requires user registration friction for community participants). Trade-off: if the admin link is lost, access is lost until regenerated; security relies on link secrecy. Acceptable for community/friends use where trust is high and friction must be minimal.

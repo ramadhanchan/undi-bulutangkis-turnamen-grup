@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(rm:*)",
+      "Shell(bun:*)",
+      "Shell(cd /home/ramadhan/Dokumen/mauweb/vibing && cp -r /tmp/next-scaffold/* /tmp/next-scaffold/.[!.]* . 2>/dev/null; ls -la)",
+      "Shell(bunx tsc --noEmit 2 >& 1)",
+      "Shell(bun types 2>&1 | head -5; echo \"---\"; ls /home/ramadhan/.bun 2>/dev/null; find / -path \"*bun*\" -name \"types\" -type d 2>/dev/null | head -5)",
+      "Shell(curl -s -X POST http://localhost:3000/api/events -H \"Content-Type: application/json\" -d '{\"name\":\"Test Event\"}')",
+      "Shell(sleep:*)",
+      "Shell(curl -v -X POST http://localhost:3000/api/events -H Content-Type: application/json -d {\"name\":\"Test Event\"} 2 >& 1)",
+      "Shell(kill 53270 2>/dev/null; sleep 1; cat /tmp/dev.log | tail -5)",
+      "Shell(kill 53483 2>/dev/null; sleep 1; echo done)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

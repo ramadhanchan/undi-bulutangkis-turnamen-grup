@@ -1,0 +1,3 @@
+# Tech stack: Next.js + Bun + SQLite + SSE
+
+We chose Next.js (App Router) with Bun as runtime/package manager, SQLite as database, and SSE for real-time updates. Rejected alternatives: Next.js + Supabase (requires external account, overkill for community use), Next.js + SQLite + WebSocket (WebSocket adds complexity for one-way broadcast). SQLite keeps the app self-contained with zero external dependencies; SSE is simpler than WebSocket for server→client broadcast. Trade-off: no serverless deployment (SQLite needs persistent filesystem), and real-time/auth features must be built manually instead of using a BaaS.
