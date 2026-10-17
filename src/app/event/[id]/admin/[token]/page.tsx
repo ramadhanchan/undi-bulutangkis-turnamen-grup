@@ -9,6 +9,12 @@ interface EventData {
   state: string;
 }
 
+interface Team {
+  id: string;
+  player1: { id: string; name: string };
+  player2: { id: string; name: string };
+}
+
 const PHASES = ["registration", "pairing", "group_stage", "knockout", "finished"] as const;
 
 export default function AdminPage() {
@@ -17,27 +23,48 @@ export default function AdminPage() {
   const id = params.id as string;
   const token = params.token as string;
   const [event, setEvent] = useState<EventData | null>(null);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pairingLoading, setPairingLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchEvent() {
+    let cancelled = false;
+    async function load() {
       try {
         const res = await fetch(`/api/events/${id}`);
+        if (cancelled) return;
         if (!res.ok) {
           setError("Event not found");
           return;
         }
         const data = await res.json();
+        if (cancelled) return;
         setEvent(data);
       } catch {
-        setError("Network error");
+        if (!cancelled) setError("Network error");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    fetchEvent();
+    async function loadTeams() {
+      try {
+        const res = await fetch(`/api/events/${id}/pairings`);
+        if (cancelled) return;
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) setTeams(data);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    load();
+    loadTeams();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   async function handleTransition(targetState: string) {
@@ -55,6 +82,27 @@ export default function AdminPage() {
       setEvent((prev) => (prev ? { ...prev, state: data.state } : prev));
     } catch {
       alert("Network error");
+    }
+  }
+
+  async function handleGeneratePairings() {
+    setPairingLoading(true);
+    try {
+      const res = await fetch(`/api/events/${id}/pairings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Pairing failed");
+        return;
+      }
+      setTeams(data);
+    } catch {
+      alert("Network error");
+    } finally {
+      setPairingLoading(false);
     }
   }
 
@@ -84,6 +132,7 @@ export default function AdminPage() {
 
   const currentIdx = PHASES.indexOf(event.state as (typeof PHASES)[number]);
   const nextPhase = currentIdx < PHASES.length - 1 ? PHASES[currentIdx + 1] : null;
+  const canPair = event.state === "pairing" || event.state === "registration";
 
   return (
     <main className="max-w-3xl mx-auto p-8">
@@ -92,6 +141,31 @@ export default function AdminPage() {
         Phase: <span className="font-semibold">{event.state}</span>
       </p>
       <p className="text-xs text-gray-400 mb-6 font-mono">Admin token: {token}</p>
+
+      {/* Pairing controls */}
+      {canPair && (
+        <div className="mb-6 space-y-3">
+          <button
+            onClick={handleGeneratePairings}
+            disabled={pairingLoading}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+          >
+            {pairingLoading ? "Generating..." : teams.length > 0 ? "Re-shuffle" : "Generate Pairings"}
+          </button>
+          {teams.length > 0 && (
+            <div className="border rounded p-3 bg-gray-50">
+              <h3 className="font-semibold mb-2">Current Teams</h3>
+              <ul className="space-y-1 text-sm">
+                {teams.map((t) => (
+                  <li key={t.id}>
+                    {t.player1.name} / {t.player2.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-3">
         {nextPhase && (
