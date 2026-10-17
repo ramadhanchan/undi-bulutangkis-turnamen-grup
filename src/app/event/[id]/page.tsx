@@ -57,6 +57,9 @@ export default function EventPage() {
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [regName, setRegName] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +128,50 @@ export default function EventPage() {
         <h2 className="text-lg font-semibold mb-2">
           Participants ({event.participants.length})
         </h2>
+        {event.state === "registration" && (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setRegLoading(true);
+              setRegError(null);
+              try {
+                const res = await fetch(`/api/events/${id}/participants`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: regName }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                  setRegError(data.error || "Registration failed");
+                  return;
+                }
+                setRegName("");
+              } catch {
+                setRegError("Network error");
+              } finally {
+                setRegLoading(false);
+              }
+            }}
+            className="mb-3 flex gap-2"
+          >
+            <input
+              type="text"
+              value={regName}
+              onChange={(e) => setRegName(e.target.value)}
+              placeholder="Your name"
+              className="border rounded px-3 py-2 flex-1"
+              required
+            />
+            <button
+              type="submit"
+              disabled={regLoading}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {regLoading ? "..." : "Register"}
+            </button>
+          </form>
+        )}
+        {regError && <p className="text-red-600 text-sm mb-2">{regError}</p>}
         {event.participants.length === 0 ? (
           <p className="text-gray-400 text-sm">No participants registered yet.</p>
         ) : (
