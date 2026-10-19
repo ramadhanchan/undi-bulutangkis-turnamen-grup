@@ -1,22 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Shell(rm:*)",
       "Shell(bun:*)",
-      "Shell(cd /home/ramadhan/Dokumen/mauweb/vibing && cp -r /tmp/next-scaffold/* /tmp/next-scaffold/.[!.]* . 2>/dev/null; ls -la)",
-      "Shell(bunx tsc --noEmit 2 >& 1)",
-      "Shell(bun types 2>&1 | head -5; echo \"---\"; ls /home/ramadhan/.bun 2>/dev/null; find / -path \"*bun*\" -name \"types\" -type d 2>/dev/null | head -5)",
-      "Shell(curl -s -X POST http://localhost:3000/api/events -H \"Content-Type: application/json\" -d '{\"name\":\"Test Event\"}')",
-      "Shell(sleep:*)",
-      "Shell(curl -v -X POST http://localhost:3000/api/events -H Content-Type: application/json -d {\"name\":\"Test Event\"} 2 >& 1)",
-      "Shell(kill 53270 2>/dev/null; sleep 1; cat /tmp/dev.log | tail -5)",
-      "Shell(kill 53483 2>/dev/null; sleep 1; echo done)",
-      "Shell(kill 54182 2>/dev/null; sleep 1; cd /home/ramadhan/Dokumen/mauweb/vibing && bun run dev > /tmp/dev.log 2>&1 & echo \"PID: $!\")",
-      "Shell(RESP=$(curl -s -X POST http://localhost:3000/api/events -H \"Content-Type: application/json\" -d '{\"name\":\"Reg Test\"}'); EVENT_ID=$(echo \"$RESP\" | grep -o '\"id\":\"[^\"]*\"' | head -1 | cut -d'\"' -f4); echo \"Event: $EVENT_ID\"; for i in 1 2 3 4; do curl -s -X POST http://localhost:3000/api/events/$EVENT_ID/participants -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"Player $i\\\"}\"; echo; done; echo \"=== GET participants ===\"; curl -s http://localhost:3000/api/events/$EVENT_ID/participants; echo; echo \"=== transition to pairing (should succeed, 4 participants) ===\"; TOKEN=$(echo \"$RESP\" | grep -o '\"adminToken\":\"[^\"]*\"' | cut -d'\"' -f4); curl -s -X POST http://localhost:3000/api/events/$EVENT_ID/transition -H \"Content-Type: application/json\" -d \"{\\\"token\\\":\\\"$TOKEN\\\",\\\"targetState\\\":\\\"pairing\\\"}\")",
+      "Shell(git:*)",
       "Shell(grep:*)",
-      "Shell(kill 59736 2>/dev/null; sleep 1; cd /home/ramadhan/Dokumen/mauweb/vibing && bun run dev > /tmp/dev.log 2>&1 & echo \"PID: $!\")",
-      "Shell(RESP=$(curl -s -X POST http://localhost:3000/api/events -H \"Content-Type: application/json\" -d '{\"name\":\"Score Test\"}'); EVENT_ID=$(echo \"$RESP\" | grep -o '\"id\":\"[^\"]*\"' | head -1 | cut -d'\"' -f4); TOKEN=$(echo \"$RESP\" | grep -o '\"adminToken\":\"[^\"]*\"' | cut -d'\"' -f4); for i in $(seq 1 8); do curl -s -X POST http://localhost:3000/api/events/$EVENT_ID/participants -H \"Content-Type: application/json\" -d \"{\\\"name\\\":\\\"P$i\\\"}\" > /dev/null; done; curl -s -X POST http://localhost:3000/api/events/$EVENT_ID/transition -H \"Content-Type: application/json\" -d \"{\\\"token\\\":\\\"$TOKEN\\\",\\\"targetState\\\":\\\"pairing\\\"}\" > /dev/null; curl -s -X POST http://localhost:3000/api/events/$EVENT_ID/pairings -H \"Content-Type: application/json\" -d \"{\\\"token\\\":\\\"$TOKEN\\\"}\" > /dev/null; curl -s -X POST http://localhost:3000/api/events/$EVENT_ID/transition -H \"Content-Type: application/json\" -d \"{\\\"token\\\":\\\"$TOKEN\\\",\\\"targetState\\\":\\\"group_stage\\\"}\" > /dev/null; echo \"=== Matches count ===\"; curl -s http://localhost:3000/api/events/$EVENT_ID | python3 -c \"import sys,json; d=json.load(sys.stdin); print(len(d['matches']), 'matches'); print(len(d['standings']), 'groups')\"; echo \"=== Submit score for first match ===\"; MATCH_ID=$(curl -s http://localhost:3000/api/events/$EVENT_ID | python3 -c \"import sys,json; d=json.load(sys.stdin); print(d['matches'][0]['id'])\"); echo \"Match: $MATCH_ID\"; curl -s -X POST http://localhost:3000/api/events/$EVENT_ID/matches/$MATCH_ID/score -H \"Content-Type: application/json\" -d \"{\\\"token\\\":\\\"$TOKEN\\\",\\\"sets\\\":[{\\\"t1\\\":21,\\\"t2\\\":19},{\\\"t1\\\":21,\\\"t2\\\":15}],\\\"isWalkover\\\":false}\"; echo; echo \"=== Standings after 1 match ===\"; curl -s http://localhost:3000/api/events/$EVENT_ID | python3 -c \"import sys,json; d=json.load(sys.stdin); print(d['standings'][0]['standings'][0]['teamName'], d['standings'][0]['standings'][0]['points'], 'pts')\")",
-      "Shell(git:*)"
+      "Shell(sleep:*)",
+      "Shell(rm:*)"
     ],
     "deny": [],
     "defaultMode": "default"
