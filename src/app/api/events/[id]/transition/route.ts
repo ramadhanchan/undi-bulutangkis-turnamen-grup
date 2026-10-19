@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { transitionPhase } from "@/lib/events";
+import { transitionPhase, verifyAdminToken } from "@/lib/events";
 import { canPair } from "@/lib/participants";
 import { generateGroupStage } from "@/lib/schedule";
 import { generateKnockoutBracket } from "@/lib/bracket";
@@ -16,6 +16,9 @@ export async function POST(
     const { token, targetState } = body;
     if (!token) {
       return NextResponse.json({ error: "Admin token required" }, { status: 401 });
+    }
+    if (!verifyAdminToken(id, token)) {
+      return NextResponse.json({ error: "Invalid admin token" }, { status: 403 });
     }
 
     // Validate participant count when transitioning to pairing

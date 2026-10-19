@@ -1,7 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Badge, PhaseBadge } from "@/components/ui";
+import {
+  listSavedEvents,
+  removeSavedEvent,
+  saveEvent,
+  type SavedEvent,
+} from "@/lib/saved-events";
+
+interface SavedEventView extends SavedEvent {
+  state?: string;
+  deleted?: boolean;
+}
 
 export default function Home() {
   const [name, setName] = useState("");
@@ -10,9 +22,41 @@ export default function Home() {
   const [result, setResult] = useState<{
     id: string;
     name: string;
+    adminToken: string;
     adminUrl: string;
   } | null>(null);
+  const [savedEvents, setSavedEvents] = useState<SavedEventView[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    const saved = listSavedEvents();
+    if (saved.length === 0) return;
+    let cancelled = false;
+
+    Promise.all(
+      saved.map(async (event): Promise<SavedEventView> => {
+        try {
+          const res = await fetch(`/api/events/${event.id}`);
+          if (!res.ok) return { ...event, deleted: true };
+          const data = await res.json();
+          return { ...event, state: data.state as string };
+        } catch {
+          return event;
+        }
+      })
+    ).then((events) => {
+      if (!cancelled) setSavedEvents(events);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleForget(id: string) {
+    removeSavedEvent(id);
+    setSavedEvents((prev) => prev.filter((event) => event.id !== id));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,6 +73,11 @@ export default function Home() {
         setError(data.error || "Failed to create event");
         return;
       }
+      saveEvent({
+        id: data.id,
+        name: data.name,
+        adminToken: data.adminToken,
+      });
       setResult(data);
     } catch {
       setError("Network error");
@@ -97,6 +146,57 @@ export default function Home() {
           {loading ? "Creating..." : "Create Event"}
         </button>
       </form>
+
+      {savedEvents.length > 0 && (
+        <section className="mt-section">
+          <h2 className="mb-component text-heading font-semibold">My Events</h2>
+          <ul className="space-y-component-sm">
+            {savedEvents.map((event) => (
+              <li
+                key={event.id}
+                className="card flex flex-wrap items-center justify-between gap-component-sm"
+              >
+                <div>
+                  <p className="text-body-sm font-medium">{event.name}</p>
+                  <div className="mt-component-sm flex items-center gap-component-sm">
+                    {event.deleted ? (
+                      <Badge tone="danger">Event deleted</Badge>
+                    ) : (
+                      event.state && <PhaseBadge phase={event.state} />
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-component-sm">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/event/${event.id}`)}
+                    className="btn btn-outline btn-sm"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(`/event/${event.id}/admin/${event.adminToken}`)
+                    }
+                    disabled={event.deleted}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleForget(event.id)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Forget
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }

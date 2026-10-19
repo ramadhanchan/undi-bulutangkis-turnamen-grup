@@ -7,6 +7,7 @@ import {
   deleteEvent,
   transitionPhase,
   verifyAdminToken,
+  regenerateAdminToken,
 } from "./events";
 
 beforeEach(() => {
@@ -129,5 +130,43 @@ describe("transitionPhase", () => {
     transitionPhase(event.id, event.adminToken, "knockout");
     const final = transitionPhase(event.id, event.adminToken, "finished");
     expect(final.state).toBe("finished");
+  });
+});
+
+describe("regenerateAdminToken", () => {
+  test("returns a new token and invalidates the old one", () => {
+    const event = createEvent("Event");
+    const oldToken = event.adminToken;
+
+    const newToken = regenerateAdminToken(event.id, oldToken);
+
+    expect(newToken).toBeTruthy();
+    expect(newToken).not.toBe(oldToken);
+    expect(verifyAdminToken(event.id, oldToken)).toBe(false);
+    expect(verifyAdminToken(event.id, newToken)).toBe(true);
+  });
+
+  test("keeps the event and its state intact", () => {
+    const event = createEvent("Event");
+    transitionPhase(event.id, event.adminToken, "pairing");
+
+    const newToken = regenerateAdminToken(event.id, event.adminToken);
+    const updated = getEvent(event.id)!;
+
+    expect(updated.name).toBe("Event");
+    expect(updated.state).toBe("pairing");
+    expect(updated.adminToken).toBe(newToken);
+  });
+
+  test("rejects a wrong token", () => {
+    const event = createEvent("Event");
+    const oldToken = event.adminToken;
+
+    expect(() => regenerateAdminToken(event.id, "wrong-token")).toThrow();
+    expect(verifyAdminToken(event.id, oldToken)).toBe(true);
+  });
+
+  test("rejects an unknown event", () => {
+    expect(() => regenerateAdminToken("nonexistent", "token")).toThrow();
   });
 });

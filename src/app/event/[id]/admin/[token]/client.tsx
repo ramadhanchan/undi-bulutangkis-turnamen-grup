@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { EmptyState, ErrorMessage, PhaseBadge, Section } from "@/components/ui";
+import { updateSavedEventToken } from "@/lib/saved-events";
 
 interface EventData {
   id: string;
@@ -187,17 +188,15 @@ function MatchScoreForm({
   );
 }
 
-export default function AdminPage() {
-  const params = useParams();
+export default function AdminPage({ id, token }: { id: string; token: string }) {
   const router = useRouter();
-  const id = params.id as string;
-  const token = params.token as string;
   const [event, setEvent] = useState<EventData | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [pairingLoading, setPairingLoading] = useState(false);
 
   useEffect(() => {
@@ -284,6 +283,35 @@ export default function AdminPage() {
     }
   }
 
+  async function handleRegenerate() {
+    if (
+      !confirm(
+        "Regenerate the admin link? The current link will stop working immediately."
+      )
+    ) {
+      return;
+    }
+    setRegenerating(true);
+    try {
+      const res = await fetch(`/api/events/${id}/regenerate-token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Regenerate failed");
+        return;
+      }
+      updateSavedEventToken(id, data.adminToken);
+      router.replace(data.adminUrl);
+    } catch {
+      alert("Network error");
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   async function handleDelete() {
     if (!confirm("Delete this event permanently?")) return;
     setDeleting(true);
@@ -324,9 +352,19 @@ export default function AdminPage() {
           <span className="text-body-sm text-muted-foreground">Phase</span>
           <PhaseBadge phase={event.state} />
         </div>
-        <p className="mt-component-sm font-mono text-caption text-muted-foreground">
-          Admin token: {token}
-        </p>
+        <div className="mt-component-sm flex flex-wrap items-center gap-component">
+          <p className="font-mono text-caption text-muted-foreground">
+            Admin token: {token}
+          </p>
+          <button
+            type="button"
+            onClick={handleRegenerate}
+            disabled={regenerating}
+            className="btn btn-outline btn-sm"
+          >
+            {regenerating ? "Regenerating..." : "Regenerate Admin Link"}
+          </button>
+        </div>
       </header>
 
       {/* Pairing controls */}

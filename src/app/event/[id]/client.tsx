@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import {
   Badge,
   ChampionBanner,
@@ -118,9 +117,7 @@ function MatchRow({ match }: { match: Match }) {
   );
 }
 
-export default function EventPage() {
-  const params = useParams();
-  const id = params.id as string;
+export default function EventPage({ id }: { id: string }) {
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
