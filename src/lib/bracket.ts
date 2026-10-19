@@ -345,9 +345,34 @@ export function advanceKnockoutRound(eventId: string): void {
   // If only 1 match in this round, it's the final — done
   if (currentRoundMatches.length === 1) return;
 
-  // Create next round matches
   const nextRound = maxRound + 1;
   const winners = currentRoundMatches.map((m) => m.winnerTeamId!);
+
+  const nextRoundMatches = matches.filter((m) => m.round === nextRound);
+
+  // If next round already exists, update team slots to reflect (possibly corrected) winners
+  if (nextRoundMatches.length > 0) {
+    for (let i = 0; i < winners.length; i += 2) {
+      const idx = i / 2;
+      const m = nextRoundMatches[idx];
+      if (!m) continue;
+      if (i + 1 < winners.length) {
+        db.run("UPDATE matches SET team1_id = ?, team2_id = ?, winner_team_id = NULL, is_walkover = 0, set1_t1 = NULL, set1_t2 = NULL, set2_t1 = NULL, set2_t2 = NULL, set3_t1 = NULL, set3_t2 = NULL, played_at = NULL WHERE id = ?", [
+          winners[i],
+          winners[i + 1],
+          m.id,
+        ]);
+      } else {
+        // odd winner gets a bye
+        db.run("UPDATE matches SET team1_id = ?, team2_id = NULL, winner_team_id = ?, is_walkover = 0, set1_t1 = NULL, set1_t2 = NULL, set2_t1 = NULL, set2_t2 = NULL, set3_t1 = NULL, set3_t2 = NULL, played_at = NULL WHERE id = ?", [
+          winners[i],
+          winners[i],
+          m.id,
+        ]);
+      }
+    }
+    return;
+  }
 
   // Pair winners: (0,1), (2,3), etc.
   for (let i = 0; i < winners.length; i += 2) {

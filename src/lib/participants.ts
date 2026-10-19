@@ -60,10 +60,12 @@ export function getParticipantCount(eventId: string): number {
 export function canPair(eventId: string): { ok: boolean; reason?: string } {
   const count = getParticipantCount(eventId);
   if (count === 0) return { ok: false, reason: "No participants registered" };
+  // A group needs 4 teams = 8 participants; require complete groups.
+  // (Spec wording says "multiple of 4" but the tournament format needs groups of 4 teams.)
   if (count % 8 !== 0) {
     return {
       ok: false,
-      reason: `Participant count must be a multiple of 8 (currently ${count}) so teams form complete groups of 4`,
+      reason: `Participant count must be a multiple of 8 (currently ${count}) so teams form complete groups of 4 (8 participants = 1 group)`,
     };
   }
   return { ok: true };
