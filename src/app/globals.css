@@ -1,26 +1,233 @@
 @import "tailwindcss";
+@import "../design/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@layer base {
+  * {
+    border-color: var(--semantic-color-border);
+  }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  body {
+    background-color: var(--semantic-color-background);
+    color: var(--semantic-color-foreground);
+    font-family: var(--semantic-font-family-sans);
+    -webkit-font-smoothing: antialiased;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :focus-visible {
+    outline: 2px solid var(--semantic-color-ring);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--primitive-space-2);
+    height: var(--component-button-size-default-height);
+    padding-inline: var(--component-button-size-default-padding-x);
+    padding-block: var(--component-button-size-default-padding-y);
+    font-size: var(--component-button-size-default-font-size);
+    font-weight: var(--component-button-font-weight);
+    border-radius: var(--component-button-radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background-color var(--semantic-duration-fast) ease-in-out,
+      color var(--semantic-duration-fast) ease-in-out,
+      border-color var(--semantic-duration-fast) ease-in-out;
+  }
+
+  .btn:disabled {
+    opacity: var(--primitive-opacity-disabled);
+    pointer-events: none;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background-color: var(--component-button-primary-background);
+    color: var(--component-button-primary-foreground);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--component-button-primary-hover-background);
+  }
+  .btn-primary:active:not(:disabled) {
+    background-color: var(--component-button-primary-active-background);
+  }
+
+  .btn-secondary {
+    background-color: var(--component-button-secondary-background);
+    color: var(--component-button-secondary-foreground);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--component-button-secondary-hover-background);
+  }
+
+  .btn-outline {
+    background-color: var(--component-button-outline-background);
+    color: var(--component-button-outline-foreground);
+    border-color: var(--component-button-outline-border);
+  }
+  .btn-outline:hover:not(:disabled) {
+    background-color: var(--component-button-outline-hover-background);
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--component-button-ghost-foreground);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--component-button-ghost-hover-background);
+  }
+
+  .btn-danger {
+    background-color: var(--component-button-danger-background);
+    color: var(--component-button-danger-foreground);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: var(--component-button-danger-hover-background);
+  }
+
+  .btn-success {
+    background-color: var(--component-button-success-background);
+    color: var(--component-button-success-foreground);
+  }
+  .btn-success:hover:not(:disabled) {
+    background-color: var(--component-button-success-hover-background);
+  }
+
+  .btn-warning {
+    background-color: var(--component-button-warning-background);
+    color: var(--component-button-warning-foreground);
+  }
+  .btn-warning:hover:not(:disabled) {
+    background-color: var(--component-button-warning-hover-background);
+  }
+
+  .btn-sm {
+    height: var(--component-button-size-sm-height);
+    padding-inline: var(--component-button-size-sm-padding-x);
+    padding-block: var(--component-button-size-sm-padding-y);
+    font-size: var(--component-button-size-sm-font-size);
+  }
+
+  .btn-lg {
+    height: var(--component-button-size-lg-height);
+    padding-inline: var(--component-button-size-lg-padding-x);
+    padding-block: var(--component-button-size-lg-padding-y);
+    font-size: var(--component-button-size-lg-font-size);
+  }
+
+  .input {
+    width: 100%;
+    height: var(--component-input-height);
+    padding-inline: var(--component-input-padding-x);
+    padding-block: var(--component-input-padding-y);
+    font-size: var(--component-input-font-size);
+    color: var(--component-input-foreground);
+    background-color: var(--component-input-background);
+    border: 1px solid var(--component-input-border);
+    border-radius: var(--component-input-radius);
+    transition:
+      border-color var(--semantic-duration-fast) ease-in-out,
+      box-shadow var(--semantic-duration-fast) ease-in-out;
+  }
+
+  .input::placeholder {
+    color: var(--component-input-placeholder);
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: var(--component-input-focus-border);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--component-input-focus-ring) 25%, transparent);
+  }
+
+  .input:disabled {
+    background-color: var(--component-input-disabled-background);
+    color: var(--component-input-disabled-foreground);
+    cursor: not-allowed;
+  }
+
+  .input[aria-invalid="true"] {
+    border-color: var(--component-input-error-border);
+  }
+
+  .input[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--component-input-error-border) 25%, transparent);
+  }
+
+  .card {
+    background-color: var(--component-card-background);
+    color: var(--component-card-foreground);
+    border: 1px solid var(--component-card-border);
+    border-radius: var(--component-card-radius);
+    padding: var(--component-card-padding);
+    box-shadow: var(--component-card-shadow);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--primitive-space-1);
+    padding-inline: var(--component-badge-padding-x);
+    padding-block: var(--component-badge-padding-y);
+    font-size: var(--component-badge-font-size);
+    font-weight: var(--component-badge-font-weight);
+    color: var(--component-badge-foreground);
+    background-color: var(--component-badge-background);
+    border: 1px solid var(--component-badge-border);
+    border-radius: var(--component-badge-radius);
+    white-space: nowrap;
+  }
+
+  .alert {
+    padding: var(--component-alert-padding);
+    color: var(--component-alert-foreground);
+    background-color: var(--component-alert-background);
+    border: 1px solid var(--component-alert-border);
+    border-radius: var(--component-alert-radius);
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--semantic-font-size-body-sm);
+  }
+
+  .table thead th {
+    padding-inline: var(--component-table-cell-padding-x);
+    padding-block: var(--component-table-cell-padding-y);
+    text-align: left;
+    font-weight: var(--semantic-font-weight-medium);
+    color: var(--component-table-header-foreground);
+    background-color: var(--component-table-header-background);
+    border-bottom: 1px solid var(--component-table-border);
+  }
+
+  .table tbody td {
+    padding-inline: var(--component-table-cell-padding-x);
+    padding-block: var(--component-table-cell-padding-y);
+    color: var(--semantic-color-foreground);
+    border-bottom: 1px solid var(--component-table-border);
+  }
+
+  .table tbody tr {
+    background-color: var(--component-table-row-background);
+  }
+
+  .table tbody tr:hover {
+    background-color: var(--component-table-row-hover-background);
+  }
+
+  .table tbody tr[data-qualified="true"] {
+    background-color: var(--component-table-row-qualified-background);
+  }
+
+  .table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
 }

@@ -39,27 +39,27 @@ export default function Home() {
 
   if (result) {
     return (
-      <main className="max-w-xl mx-auto p-8">
-        <h1 className="text-2xl font-bold mb-4">Event Created!</h1>
-        <p className="mb-2">
+      <main className="mx-auto max-w-xl px-page-x py-page-y">
+        <h1 className="mb-component text-display font-bold">Event Created</h1>
+        <p className="mb-component">
           <strong>{result.name}</strong>
         </p>
-        <p className="mb-4 text-sm text-gray-600">
-          Save your admin link — it won&apos;t be shown again:
+        <p className="mb-component text-body-sm text-muted-foreground">
+          Save your admin link — it won&apos;t be shown again.
         </p>
-        <div className="bg-gray-100 p-3 rounded mb-4 break-all font-mono text-sm">
+        <div className="mb-component-lg break-all rounded-control bg-surface-muted p-component font-mono text-caption">
           {result.adminUrl}
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-component">
           <button
             onClick={() => router.push(`/event/${result.id}`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="btn btn-primary"
           >
             View Event
           </button>
           <button
             onClick={() => router.push(result.adminUrl)}
-            className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900"
+            className="btn btn-secondary"
           >
             Go to Admin
           </button>
@@ -69,11 +69,13 @@ export default function Home() {
   }
 
   return (
-    <main className="max-w-xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Badminton Doubles Tournament</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <main className="mx-auto max-w-xl px-page-x py-page-y">
+      <h1 className="mb-section-sm text-display font-bold">
+        Badminton Doubles Tournament
+      </h1>
+      <form onSubmit={handleSubmit} className="space-y-component">
         <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="name">
+          <label className="mb-component-sm block text-label font-medium" htmlFor="name">
             Event Name
           </label>
           <input
@@ -81,17 +83,17 @@ export default function Home() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border rounded px-3 py-2"
+            className="input"
             placeholder="e.g. Friday Badminton"
             required
           />
         </div>
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-        >
+        {error && (
+          <p role="alert" className="text-body-sm text-danger-subtle-foreground">
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={loading} className="btn btn-primary">
           {loading ? "Creating..." : "Create Event"}
         </button>
       </form>
