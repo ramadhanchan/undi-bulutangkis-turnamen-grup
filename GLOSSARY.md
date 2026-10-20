@@ -17,12 +17,16 @@ Pasangan 2 participant yang bermain bersama dalam satu event. Dibentuk secara ac
 _Avoid_: Pair, Pasangan (sebagai nama entity)
 
 **Group**:
-Kumpulan 4 team yang saling bertanding di group stage (round-robin).
+Kumpulan 3–4 team yang saling bertanding di group stage (round-robin), dengan 4 team sebagai ukuran target.
 _Avoid_: Pool, Grup (sebagai nama entity — "grup" boleh dipakai umum)
 
 **Group Stage**:
-Babak penyisihan di mana setiap team dalam satu grup bertemu semua team lain (round-robin, 3 match per team). Top 2 per grup lolos ke knockout.
+Babak penyisihan di mana setiap team dalam satu grup bertemu semua team lain (round-robin; 2–3 match per team tergantung ukuran grup). Top 2 per grup lolos ke knockout.
 _Avoid_: Babak Penyisihan (sebagai nama entity)
+
+**Group Draw**:
+Proses mengacak team dan membaginya ke dalam Group berukuran 3–4 (target 4). Bisa diulang (re-shuffle) sebelum undian dikunci.
+_Avoid_: Drawing, Undian Grup (sebagai nama entity)
 
 **Knockout**:
 Babak gugur (single elimination) yang dimulai dari qualified teams (top 2 per grup). Match best of 3 set.

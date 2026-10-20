@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { transitionPhase, verifyAdminToken } from "@/lib/events";
+import { readAdminRequest } from "@/lib/admin-request";
+import { getDb } from "@/lib/db";
+import { transitionPhase } from "@/lib/events";
 import { canPair } from "@/lib/participants";
-import { generateGroupStage } from "@/lib/schedule";
 import { generateKnockoutBracket } from "@/lib/bracket";
+import { getGroupStageProgress } from "@/lib/schedule";
 import { broadcast } from "@/lib/sse";
 import type { EventState } from "@/lib/types";
 
@@ -11,51 +13,70 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const admin = await readAdminRequest(request, id);
+  if ("response" in admin) return admin.response;
+  const { body, token } = admin;
+
   try {
-    const body = await request.json();
-    const { token, targetState } = body;
-    if (!token) {
-      return NextResponse.json({ error: "Admin token required" }, { status: 401 });
-    }
-    if (!verifyAdminToken(id, token)) {
-      return NextResponse.json({ error: "Invalid admin token" }, { status: 403 });
+    const targetState =
+      typeof body.targetState === "string" ? body.targetState : "";
+
+    if (targetState === "finished") {
+      return NextResponse.json(
+        { error: "Fase selesai ditetapkan otomatis saat Final selesai" },
+        { status: 400 }
+      );
     }
 
-    // Validate participant count when transitioning to pairing
+    if (targetState === "group_stage") {
+      return NextResponse.json(
+        { error: "Gunakan aksi konfirmasi grup" },
+        { status: 400 }
+      );
+    }
+
     if (targetState === "pairing") {
       const check = canPair(id);
       if (!check.ok) {
-        return NextResponse.json({ error: check.reason }, { status: 400 });
+        return NextResponse.json(
+          { error: check.reason ?? "Roster belum valid" },
+          { status: 400 }
+        );
       }
     }
 
-    const event = transitionPhase(id, token, targetState as EventState);
-
-    // Generate group stage matches when transitioning to group_stage
-    if (targetState === "group_stage") {
-      try {
-        generateGroupStage(id);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to generate group stage";
-        return NextResponse.json({ error: msg }, { status: 400 });
-      }
-    }
-
-    // Generate knockout bracket when transitioning to knockout
     if (targetState === "knockout") {
-      try {
-        generateKnockoutBracket(id);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to generate knockout bracket";
-        return NextResponse.json({ error: msg }, { status: 400 });
+      const progress = getGroupStageProgress(id);
+      if (progress.total === 0) {
+        return NextResponse.json(
+          { error: "Match grup belum dibuat" },
+          { status: 400 }
+        );
+      }
+      if (progress.unfinished.length > 0) {
+        return NextResponse.json(
+          {
+            error: `Masih ada ${progress.unfinished.length} match grup yang belum selesai`,
+          },
+          { status: 400 }
+        );
       }
     }
+
+    const db = getDb();
+    const event = db.transaction(() => {
+      const next = transitionPhase(id, token, targetState as EventState);
+      if (targetState === "knockout") {
+        generateKnockoutBracket(id);
+      }
+      return next;
+    })();
 
     broadcast(id, { type: "phase_transition", state: event.state });
     return NextResponse.json({ id: event.id, state: event.state });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    const status = message.includes("Invalid admin token") ? 403 : 400;
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan";
+    const status = message.includes("Admin Link tidak valid") ? 403 : 400;
     return NextResponse.json({ error: message }, { status });
   }
 }

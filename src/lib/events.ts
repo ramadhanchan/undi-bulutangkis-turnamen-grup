@@ -12,8 +12,8 @@ const VALID_TRANSITIONS: Record<EventState, EventState[]> = {
 
 export function validateEventName(name: string): string | null {
   const trimmed = name.trim();
-  if (trimmed.length === 0) return "Event name is required";
-  if (trimmed.length > 100) return "Event name must be 100 characters or less";
+  if (trimmed.length === 0) return "Nama event wajib diisi";
+  if (trimmed.length > 100) return "Nama event maksimal 100 karakter";
   return null;
 }
 
@@ -37,12 +37,13 @@ export function createEvent(name: string): Event {
 export function getEvent(id: string): Event | null {
   const db = getDb();
   const row = db
-    .query("SELECT id, name, admin_token, state, created_at, updated_at FROM events WHERE id = ?")
-    .get(id) as {
+      .query("SELECT id, name, admin_token, state, teams_locked, created_at, updated_at FROM events WHERE id = ?")
+      .get(id) as {
       id: string;
       name: string;
       admin_token: string;
       state: string;
+      teams_locked: number;
       created_at: string;
       updated_at: string;
     } | null;
@@ -52,6 +53,7 @@ export function getEvent(id: string): Event | null {
     name: row.name,
     adminToken: row.admin_token,
     state: row.state as EventState,
+    teamsLocked: row.teams_locked === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -61,6 +63,14 @@ export function verifyAdminToken(eventId: string, token: string): boolean {
   const event = getEvent(eventId);
   if (!event) return false;
   return event.adminToken === token;
+}
+
+export function markTeamsLocked(eventId: string): void {
+  const db = getDb();
+  db.run(
+    "UPDATE events SET teams_locked = 1, updated_at = datetime('now') WHERE id = ?",
+    [eventId]
+  );
 }
 
 export function deleteEvent(eventId: string, adminToken: string): boolean {
@@ -76,15 +86,15 @@ export function transitionPhase(
   targetState: EventState
 ): Event {
   if (!verifyAdminToken(eventId, adminToken)) {
-    throw new Error("Invalid admin token");
+    throw new Error("Admin Link tidak valid");
   }
   const event = getEvent(eventId);
-  if (!event) throw new Error("Event not found");
+  if (!event) throw new Error("Event tidak ditemukan");
 
   const allowed = VALID_TRANSITIONS[event.state];
   if (!allowed.includes(targetState)) {
     throw new Error(
-      `Cannot transition from ${event.state} to ${targetState}`
+      `Tidak bisa pindah dari ${event.state} ke ${targetState}`
     );
   }
 
@@ -98,7 +108,7 @@ export function transitionPhase(
 
 export function regenerateAdminToken(eventId: string, currentToken: string): string {
   if (!verifyAdminToken(eventId, currentToken)) {
-    throw new Error("Invalid admin token");
+    throw new Error("Admin Link tidak valid");
   }
   const newToken = randomUUID();
   const db = getDb();

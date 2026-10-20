@@ -1,12 +1,12 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import { resetDb } from "./db";
-import { createEvent } from "./events";
-import { transitionPhase } from "./events";
+import { createEvent, getEvent, transitionPhase } from "./events";
 import { registerParticipant } from "./participants";
 import {
   generatePairings,
   getTeams,
   isPairingLocked,
+  lockTeams,
   swapPlayers,
 } from "./pairing";
 
@@ -20,6 +20,13 @@ function setupEventWithParticipants(count: number) {
   for (let i = 0; i < count; i++) {
     registerParticipant(event.id, `Player ${i + 1}`);
   }
+  return event;
+}
+
+function setupPairedEvent(count = 8) {
+  const event = setupEventWithParticipants(count);
+  transitionPhase(event.id, event.adminToken, "pairing");
+  generatePairings(event.id);
   return event;
 }
 
@@ -105,6 +112,54 @@ describe("isPairingLocked", () => {
     transitionPhase(event.id, event.adminToken, "pairing");
     transitionPhase(event.id, event.adminToken, "group_stage");
     expect(isPairingLocked(event.id)).toBe(true);
+  });
+
+  test("locked after teams are locked", () => {
+    const event = setupPairedEvent();
+    lockTeams(event.id);
+    expect(isPairingLocked(event.id)).toBe(true);
+  });
+});
+
+describe("lockTeams", () => {
+  test("locks the teams and marks the event", () => {
+    const event = setupPairedEvent();
+
+    lockTeams(event.id);
+
+    expect(getEvent(event.id)?.teamsLocked).toBe(true);
+    expect(getTeams(event.id)).toHaveLength(4);
+  });
+
+  test("rejects locking without teams", () => {
+    const event = setupEventWithParticipants(8);
+    transitionPhase(event.id, event.adminToken, "pairing");
+
+    expect(() => lockTeams(event.id)).toThrow();
+  });
+
+  test("rejects a second lock", () => {
+    const event = setupPairedEvent();
+    lockTeams(event.id);
+
+    expect(() => lockTeams(event.id)).toThrow();
+  });
+
+  test("rejects re-shuffle and swap after the lock", () => {
+    const event = setupPairedEvent();
+    const teams = getTeams(event.id);
+    lockTeams(event.id);
+
+    expect(() => generatePairings(event.id)).toThrow();
+    expect(() =>
+      swapPlayers(
+        event.id,
+        teams[0].id,
+        teams[0].player1Id,
+        teams[1].id,
+        teams[1].player1Id
+      )
+    ).toThrow();
   });
 });
 

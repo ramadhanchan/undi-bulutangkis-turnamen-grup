@@ -1,3 +1,4 @@
+import { nextSlotPosition } from "./bracket-layout";
 import { getDb } from "./db";
 
 export interface SetScore {
@@ -105,24 +106,55 @@ export function recordMatchScore(
   const db = getDb();
 
   const match = db
-    .query("SELECT team1_id, team2_id FROM matches WHERE id = ?")
-    .get(matchId) as { team1_id: string | null; team2_id: string | null } | null;
+    .query(
+      "SELECT team1_id, team2_id, event_id, phase, round, position FROM matches WHERE id = ?"
+    )
+    .get(matchId) as {
+    team1_id: string | null;
+    team2_id: string | null;
+    event_id: string;
+    phase: string;
+    round: number;
+    position: number | null;
+  } | null;
 
-  if (!match) throw new Error("Match not found");
+  if (!match) throw new Error("Match tidak ditemukan");
+
+  if (match.phase === "knockout" && match.position !== null) {
+    const nextPosition = nextSlotPosition(match.position);
+    const next = db
+      .query(
+        "SELECT winner_team_id FROM matches WHERE event_id = ? AND phase = 'knockout' AND round = ? AND position = ?"
+      )
+      .get(match.event_id, match.round + 1, nextPosition) as {
+      winner_team_id: string | null;
+    } | null;
+
+    if (next?.winner_team_id) {
+      throw new Error(
+        "Match ronde berikutnya sudah diputuskan; koreksi tidak diizinkan"
+      );
+    }
+  }
 
   if (isWalkover) {
-    if (walkoverWinnerId && walkoverWinnerId === match.team2_id) {
+    if (!walkoverWinnerId) {
+      throw new Error("Pemenang walkover wajib dipilih");
+    }
+    if (walkoverWinnerId === match.team2_id) {
       sets = [
         { t1: 0, t2: 21 },
         { t1: 0, t2: 21 },
       ];
-    } else {
+    } else if (walkoverWinnerId === match.team1_id) {
       sets = getWalkoverScore();
+    } else {
+      throw new Error("Pemenang walkover tidak valid");
     }
   }
 
   if (!isValidMatchScore(sets)) {
-    throw new Error("Invalid score");
+    throw new Error("Skor tidak valid");
   }
 
   const winner = getMatchWinner(sets);

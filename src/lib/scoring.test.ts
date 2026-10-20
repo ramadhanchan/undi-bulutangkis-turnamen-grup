@@ -10,8 +10,12 @@ import {
 import { resetDb } from "./db";
 import { createEvent, transitionPhase } from "./events";
 import { registerParticipant } from "./participants";
-import { generatePairings } from "./pairing";
-import { generateGroupStage, getMatches } from "./schedule";
+import { generatePairings, getTeams } from "./pairing";
+import {
+  drawGroupAssignments,
+  generateGroupStage,
+  getMatches,
+} from "./schedule";
 
 beforeEach(() => {
   process.env.DB_PATH = ":memory:";
@@ -85,7 +89,10 @@ describe("recordMatchScore", () => {
     transitionPhase(event.id, event.adminToken, "pairing");
     generatePairings(event.id);
     transitionPhase(event.id, event.adminToken, "group_stage");
-    generateGroupStage(event.id);
+    generateGroupStage(
+      event.id,
+      drawGroupAssignments(getTeams(event.id).map((team) => team.id))
+    );
     const matches = getMatches(event.id, "group");
     expect(matches.length).toBe(6); // 4 teams → 1 group → 6 matches
 
@@ -97,13 +104,34 @@ describe("recordMatchScore", () => {
     expect(result.winnerTeamId).toBe(match.team1Id);
   });
 
+  test("rejects a walkover without a valid winner", () => {
+    const event = createEvent("Event");
+    for (let i = 0; i < 8; i++) registerParticipant(event.id, `P${i}`);
+    transitionPhase(event.id, event.adminToken, "pairing");
+    generatePairings(event.id);
+    transitionPhase(event.id, event.adminToken, "group_stage");
+    generateGroupStage(
+      event.id,
+      drawGroupAssignments(getTeams(event.id).map((team) => team.id))
+    );
+    const match = getMatches(event.id, "group")[0];
+
+    expect(() => recordMatchScore(match.id, [], true)).toThrow();
+    expect(() =>
+      recordMatchScore(match.id, [], true, "not-a-team")
+    ).toThrow();
+  });
+
   test("records walkover", () => {
     const event = createEvent("Event");
     for (let i = 0; i < 8; i++) registerParticipant(event.id, `P${i}`);
     transitionPhase(event.id, event.adminToken, "pairing");
     generatePairings(event.id);
     transitionPhase(event.id, event.adminToken, "group_stage");
-    generateGroupStage(event.id);
+    generateGroupStage(
+      event.id,
+      drawGroupAssignments(getTeams(event.id).map((team) => team.id))
+    );
     const matches = getMatches(event.id, "group");
     const match = matches[0];
 
@@ -117,7 +145,10 @@ describe("recordMatchScore", () => {
     transitionPhase(event.id, event.adminToken, "pairing");
     generatePairings(event.id);
     transitionPhase(event.id, event.adminToken, "group_stage");
-    generateGroupStage(event.id);
+    generateGroupStage(
+      event.id,
+      drawGroupAssignments(getTeams(event.id).map((team) => team.id))
+    );
     const matches = getMatches(event.id, "group");
     const match = matches[0];
 

@@ -3,7 +3,7 @@ import EventClient from "./client";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<main className="p-8">Loading...</main>}>
+    <Suspense fallback={<main className="p-8">Memuat event...</main>}>
       <EventPage params={params} />
     </Suspense>
   );

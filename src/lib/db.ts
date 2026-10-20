@@ -27,6 +27,7 @@ function initSchema(database: Database) {
       name TEXT NOT NULL,
       admin_token TEXT NOT NULL UNIQUE,
       state TEXT NOT NULL DEFAULT 'registration',
+      teams_locked INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -55,6 +56,7 @@ function initSchema(database: Database) {
       phase TEXT NOT NULL,
       group_number INTEGER,
       round INTEGER NOT NULL DEFAULT 1,
+      position INTEGER,
       set1_t1 INTEGER,
       set1_t2 INTEGER,
       set2_t1 INTEGER,
@@ -67,6 +69,30 @@ function initSchema(database: Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  ensureColumn(database, "events", "teams_locked", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(database, "matches", "position", "INTEGER");
+
+  database.exec(`
+    DROP INDEX IF EXISTS idx_matches_round_position;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_knockout_position
+    ON matches (event_id, round, position)
+    WHERE phase = 'knockout';
+  `);
+}
+
+function ensureColumn(
+  database: Database,
+  table: string,
+  column: string,
+  definition: string
+) {
+  const columns = database.query(`PRAGMA table_info(${table})`).all() as {
+    name: string;
+  }[];
+  if (!columns.some((entry) => entry.name === column)) {
+    database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }
 
 export function closeDb() {

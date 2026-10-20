@@ -248,7 +248,7 @@ Baris yang lolos ke knockout: `<tr data-qualified="true">` → background succes
 | `EmptyState` | Teks "belum ada data" |
 | `Section` | Section dengan judul + count |
 | `ErrorMessage` | Pesan error (role="alert") |
-| `phaseLabel` | `group_stage` → `Group Stage` |
+| `phaseLabel` | `group_stage` → `Fase Grup` |
 
 > **Penting:** class Tailwind yang dibangun dinamis (`bg-phase-${x}`) **tidak** bisa
 > di-detect scanner Tailwind. Karena itu `PHASE_CLASSES` ditulis sebagai map statis
@@ -290,7 +290,7 @@ Transisi dipakai di button dan input (color + border-color).
 - Fokus selalu terlihat: ring 2px `var(--semantic-color-ring)` + offset 2px.
 - Rasio kontras minimum 4.5:1 untuk teks normal, 3:1 untuk UI component.
 - Status tidak pernah mengandalkan warna saja — champion pakai label teks,
-  qualified pakai teks "Qualified", walkover punya badge "W.O.".
+  tim lolos pakai teks "Lolos", walkover punya badge "W.O.".
 - Error message pakai `role="alert"`.
 - Tombol disabled pakai atribut `disabled` (bukan cuma `aria-disabled`).
 

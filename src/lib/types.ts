@@ -10,6 +10,7 @@ export interface Event {
   name: string;
   adminToken: string;
   state: EventState;
+  teamsLocked: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +39,7 @@ export interface Match {
   phase: "group" | "knockout";
   groupNumber: number | null;
   round: number;
+  position: number | null;
   set1T1: number | null;
   set1T2: number | null;
   set2T1: number | null;

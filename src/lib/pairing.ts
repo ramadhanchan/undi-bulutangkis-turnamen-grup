@@ -1,13 +1,14 @@
 import { randomUUID } from "crypto";
 import { getDb } from "./db";
 import { getParticipants } from "./participants";
-import { getEvent } from "./events";
+import { getEvent, markTeamsLocked } from "./events";
 import type { Team } from "./types";
 
 export function isPairingLocked(eventId: string): boolean {
   const event = getEvent(eventId);
   if (!event) return true;
   return (
+    event.teamsLocked ||
     event.state === "group_stage" ||
     event.state === "knockout" ||
     event.state === "finished"
@@ -15,9 +16,13 @@ export function isPairingLocked(eventId: string): boolean {
 }
 
 export function generatePairings(eventId: string): Team[] {
+  if (isPairingLocked(eventId)) {
+    throw new Error("Undian tim sudah dikunci");
+  }
+
   const participants = getParticipants(eventId);
   if (participants.length === 0 || participants.length % 2 !== 0) {
-    throw new Error("Participant count must be even for pairing");
+    throw new Error("Jumlah peserta harus genap untuk mengundi tim");
   }
 
   const db = getDb();
@@ -52,6 +57,22 @@ export function generatePairings(eventId: string): Team[] {
   return teams;
 }
 
+export function lockTeams(eventId: string): void {
+  const event = getEvent(eventId);
+  if (!event) throw new Error("Event tidak ditemukan");
+  if (event.state !== "pairing") {
+    throw new Error("Event harus berada di fase undian tim");
+  }
+  if (event.teamsLocked) {
+    throw new Error("Undian tim sudah dikunci");
+  }
+  if (getTeams(eventId).length === 0) {
+    throw new Error("Belum ada tim");
+  }
+
+  markTeamsLocked(eventId);
+}
+
 export function getTeams(eventId: string): Team[] {
   const db = getDb();
   const rows = db
@@ -83,7 +104,7 @@ export function swapPlayers(
   player2Id: string
 ): void {
   if (isPairingLocked(eventId)) {
-    throw new Error("Pairings are locked");
+    throw new Error("Undian tim sudah dikunci");
   }
 
   const db = getDb();
@@ -96,14 +117,16 @@ export function swapPlayers(
     .query("SELECT player1_id, player2_id FROM teams WHERE id = ? AND event_id = ?")
     .get(team2Id, eventId) as { player1_id: string; player2_id: string } | null;
 
-  if (!team1 || !team2) throw new Error("Team not found");
-  if (team1Id === team2Id) throw new Error("Cannot swap within the same team");
+  if (!team1 || !team2) throw new Error("Tim tidak ditemukan");
+  if (team1Id === team2Id) {
+    throw new Error("Tidak bisa menukar pemain dalam tim yang sama");
+  }
 
   const team1HasPlayer = team1.player1_id === player1Id || team1.player2_id === player1Id;
   const team2HasPlayer = team2.player1_id === player2Id || team2.player2_id === player2Id;
 
-  if (!team1HasPlayer) throw new Error("Player not found in team 1");
-  if (!team2HasPlayer) throw new Error("Player not found in team 2");
+  if (!team1HasPlayer) throw new Error("Pemain tidak ditemukan di tim 1");
+  if (!team2HasPlayer) throw new Error("Pemain tidak ditemukan di tim 2");
 
   // Perform swap
   const t1Other = team1.player1_id === player1Id ? team1.player2_id : team1.player1_id;

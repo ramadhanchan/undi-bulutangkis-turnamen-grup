@@ -2,8 +2,12 @@ import { describe, test, expect, beforeEach } from "bun:test";
 import { resetDb } from "./db";
 import { createEvent, transitionPhase } from "./events";
 import { registerParticipant } from "./participants";
-import { generatePairings } from "./pairing";
-import { generateGroupStage, getMatches } from "./schedule";
+import { generatePairings, getTeams } from "./pairing";
+import {
+  drawGroupAssignments,
+  generateGroupStage,
+  getMatches,
+} from "./schedule";
 import { recordMatchScore } from "./scoring";
 import { calculateGroupStandings } from "./standings";
 
@@ -18,7 +22,10 @@ function setupTournament() {
   transitionPhase(event.id, event.adminToken, "pairing");
   generatePairings(event.id);
   transitionPhase(event.id, event.adminToken, "group_stage");
-  generateGroupStage(event.id);
+  generateGroupStage(
+    event.id,
+    drawGroupAssignments(getTeams(event.id).map((team) => team.id))
+  );
   return event;
 }
 

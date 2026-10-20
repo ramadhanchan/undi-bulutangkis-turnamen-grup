@@ -7,7 +7,7 @@ export default function Page({
   params: Promise<{ id: string; token: string }>;
 }) {
   return (
-    <Suspense fallback={<main className="p-8">Loading...</main>}>
+    <Suspense fallback={<main className="p-8">Memuat event...</main>}>
       <AdminPage params={params} />
     </Suspense>
   );

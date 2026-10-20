@@ -26,8 +26,9 @@ const problems = [];
 function walk(dir, acc = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(full, acc);
-    else if (/\.(tsx|ts|css)$/.test(entry.name)) acc.push(full);
+    if (entry.isDirectory()) {
+      walk(full, acc);
+    } else if (/\.(tsx|ts|css)$/.test(entry.name)) acc.push(full);
   }
   return acc;
 }
@@ -88,7 +89,10 @@ for (const file of walk(SRC)) {
   const src = fs.readFileSync(file, "utf8");
   // className="..." and className={`...`}
   for (const m of src.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})/g)) {
-    for (const c of (m[1] ?? m[2] ?? "").split(/\s+/)) {
+    // Template-literal interpolations hold expressions, not class names.
+    const raw = m[1] ?? m[2] ?? "";
+    const cleaned = raw.replace(/\$\{[^}]*\}/g, " ");
+    for (const c of cleaned.split(/\s+/)) {
       if (c) classTokens.add(c);
     }
   }

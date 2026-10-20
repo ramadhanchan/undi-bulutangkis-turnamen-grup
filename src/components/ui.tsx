@@ -13,11 +13,11 @@ export type Phase =
   | "finished";
 
 const PHASE_LABELS: Record<Phase, string> = {
-  registration: "Registration",
-  pairing: "Pairing",
-  group_stage: "Group Stage",
+  registration: "Daftar",
+  pairing: "Undi Tim",
+  group_stage: "Fase Grup",
   knockout: "Knockout",
-  finished: "Finished",
+  finished: "Selesai",
 };
 
 /**
@@ -65,7 +65,7 @@ export function ChampionBanner({ name }: { name: string }) {
   return (
     <div className="alert bg-champion-subtle border-champion/30 text-center">
       <span className="text-body-sm font-semibold text-champion-foreground">
-        Champion: {name}
+        Juara: {name}
       </span>
     </div>
   );

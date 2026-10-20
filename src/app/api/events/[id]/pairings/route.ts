@@ -1,9 +1,26 @@
 import { NextResponse } from "next/server";
-import { getEvent } from "@/lib/events";
-import { isPairingLocked, generatePairings, getTeams, swapPlayers } from "@/lib/pairing";
-import { getParticipants } from "@/lib/participants";
+import { readAdminRequest } from "@/lib/admin-request";
+import { getDb } from "@/lib/db";
+import { isEventState } from "@/lib/event-state";
+import { buildTeamViews } from "@/lib/event-snapshot";
+import { getEvent, transitionPhase } from "@/lib/events";
+import {
+  generatePairings,
+  getTeams,
+  isPairingLocked,
+  swapPlayers,
+} from "@/lib/pairing";
+import { canPair, getParticipants } from "@/lib/participants";
 import { broadcast } from "@/lib/sse";
-import { verifyAdminToken } from "@/lib/events";
+
+function teamResponse(eventId: string) {
+  const participants = getParticipants(eventId);
+  const playerNames = new Map(
+    participants.map((participant) => [participant.id, participant.name])
+  );
+
+  return buildTeamViews(getTeams(eventId), playerNames);
+}
 
 export async function GET(
   _request: Request,
@@ -12,20 +29,13 @@ export async function GET(
   const { id } = await params;
   const event = getEvent(id);
   if (!event) {
-    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Event tidak ditemukan." },
+      { status: 404 }
+    );
   }
-  const teams = getTeams(id);
-  const participants = getParticipants(id);
-  const pMap = new Map(participants.map((p) => [p.id, p.name]));
 
-  const result = teams.map((t) => ({
-    id: t.id,
-    player1: { id: t.player1Id, name: pMap.get(t.player1Id) || "Unknown" },
-    player2: { id: t.player2Id, name: pMap.get(t.player2Id) || "Unknown" },
-    groupNumber: t.groupNumber,
-  }));
-
-  return NextResponse.json(result);
+  return NextResponse.json(teamResponse(id));
 }
 
 export async function POST(
@@ -33,41 +43,45 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const event = getEvent(id);
-  if (!event) {
-    return NextResponse.json({ error: "Event not found" }, { status: 404 });
-  }
+  const admin = await readAdminRequest(request, id);
+  if ("response" in admin) return admin.response;
+  const { token, event } = admin;
   try {
-    const body = await request.json();
-    const { token } = body;
-    if (!token || !verifyAdminToken(id, token)) {
-      return NextResponse.json({ error: "Invalid admin token" }, { status: 403 });
-    }
     if (isPairingLocked(id)) {
-      return NextResponse.json({ error: "Pairings are locked" }, { status: 400 });
-    }
-    if (event.state !== "pairing" && event.state !== "registration") {
       return NextResponse.json(
-        { error: "Event must be in registration or pairing phase" },
+        { error: "Undian tim sudah dikunci" },
+        { status: 400 }
+      );
+    }
+    if (!isEventState(event.state, ["registration", "pairing"])) {
+      return NextResponse.json(
+        { error: "Event harus berada di fase pendaftaran atau undian tim" },
         { status: 400 }
       );
     }
 
-    const teams = generatePairings(id);
-    const participants = getParticipants(id);
-    const pMap = new Map(participants.map((p) => [p.id, p.name]));
+    const check = canPair(id);
+    if (!check.ok) {
+      return NextResponse.json(
+        { error: check.reason ?? "Roster belum valid" },
+        { status: 400 }
+      );
+    }
 
-    const result = teams.map((t) => ({
-      id: t.id,
-      player1: { id: t.player1Id, name: pMap.get(t.player1Id) || "Unknown" },
-      player2: { id: t.player2Id, name: pMap.get(t.player2Id) || "Unknown" },
-      groupNumber: t.groupNumber,
-    }));
+    const db = getDb();
+    db.transaction(() => {
+      generatePairings(id);
+      if (event.state === "registration") {
+        transitionPhase(id, token, "pairing");
+      }
+    })();
 
+    const result = teamResponse(id);
     broadcast(id, { type: "pairings_generated", teams: result });
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message =
+      error instanceof Error ? error.message : "Terjadi kesalahan";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
@@ -77,37 +91,32 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const event = getEvent(id);
-  if (!event) {
-    return NextResponse.json({ error: "Event not found" }, { status: 404 });
-  }
+  const admin = await readAdminRequest(request, id);
+  if ("response" in admin) return admin.response;
+  const { body } = admin;
   try {
-    const body = await request.json();
-    const { token, team1Id, player1Id, team2Id, player2Id } = body;
-    if (!token || !verifyAdminToken(id, token)) {
-      return NextResponse.json({ error: "Invalid admin token" }, { status: 403 });
-    }
+    const team1Id = typeof body.team1Id === "string" ? body.team1Id : "";
+    const player1Id =
+      typeof body.player1Id === "string" ? body.player1Id : "";
+    const team2Id = typeof body.team2Id === "string" ? body.team2Id : "";
+    const player2Id =
+      typeof body.player2Id === "string" ? body.player2Id : "";
+
     if (isPairingLocked(id)) {
-      return NextResponse.json({ error: "Pairings are locked" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Undian tim sudah dikunci" },
+        { status: 400 }
+      );
     }
 
     swapPlayers(id, team1Id, player1Id, team2Id, player2Id);
 
-    const teams = getTeams(id);
-    const participants = getParticipants(id);
-    const pMap = new Map(participants.map((p) => [p.id, p.name]));
-
-    const result = teams.map((t) => ({
-      id: t.id,
-      player1: { id: t.player1Id, name: pMap.get(t.player1Id) || "Unknown" },
-      player2: { id: t.player2Id, name: pMap.get(t.player2Id) || "Unknown" },
-      groupNumber: t.groupNumber,
-    }));
-
+    const result = teamResponse(id);
     broadcast(id, { type: "pairings_updated", teams: result });
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message =
+      error instanceof Error ? error.message : "Terjadi kesalahan";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
